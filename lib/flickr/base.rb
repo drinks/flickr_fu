@@ -108,7 +108,8 @@ module Flickr
     def sign_request(options, authorize = true)
       options.merge!(:auth_token => self.auth.token(false).to_s, :api_key => @api_key) if authorize and self.auth.token(false)
       options.delete(:api_sig)
-      options.merge!(:api_sig => Digest::MD5.hexdigest(@api_secret + options.to_a.sort_by{|k| k[0].to_s}.flatten.join)) if @api_secret
+      options
+      # options.merge!(:api_sig => Digest::MD5.hexdigest(@api_secret + options.to_a.sort_by{|k| k[0].to_s}.flatten.join)) if @api_secret
     end
 
     # creates and/or returns the Flickr::Test object
