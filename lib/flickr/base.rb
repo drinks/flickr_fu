@@ -2,18 +2,18 @@ module Flickr
   def self.new(*params)
     Flickr::Base.new(*params)
   end
-  
+
   class Base
     attr_reader :api_key, :api_secret, :token_cache, :token
-    
-    REST_ENDPOINT = 'http://api.flickr.com/services/rest/'
-    AUTH_ENDPOINT = 'http://flickr.com/services/auth/'
-    UPLOAD_ENDPOINT = 'http://api.flickr.com/services/upload/'
-    
+
+    REST_ENDPOINT = 'https://api.flickr.com/services/rest/'
+    AUTH_ENDPOINT = 'https://flickr.com/services/auth/'
+    UPLOAD_ENDPOINT = 'https://api.flickr.com/services/upload/'
+
     # create a new flickr object
-    # 
+    #
     # You can either pass a hash with the following attributes:
-    # 
+    #
     # * :key (Required)
     #     the API key
     # * :secret (Required)
@@ -22,7 +22,7 @@ module Flickr
     #     Flickr::Auth::Token object
     #
     # or:
-    # 
+    #
     # * config_file (Required)
     #     yaml file to load configuration from
     # * options (Optional)
@@ -68,7 +68,7 @@ module Flickr
     end
 
     # sends a request to the flickr REST api
-    # 
+    #
     # Params
     # * method (Required)
     #     name of the flickr method (ex. flickr.photos.search)
@@ -80,52 +80,52 @@ module Flickr
     #       :post
     # * endpoint (Optional)
     #     url of the api endpoint
-    # 
+    #
     def send_request(method, options = {}, http_method = :get, endpoint = REST_ENDPOINT)
       options.merge!(:api_key => @api_key, :method => method)
       sign_request(options)
-      
+
       rsp = request_over_http(options, http_method, endpoint)
-      
+
       rsp = '<rsp stat="ok"></rsp>' if rsp == ""
       xm = XmlMagic.new(rsp)
-      
+
       if xm[:stat] == 'ok'
         xm
       else
         raise Flickr::Errors.error_for(xm.err[:code].to_i, xm.err[:msg])
       end
     end
-    
+
     # alters your api parameters to include a signiture and authorization token
-    # 
+    #
     # Params
     # * options (Required)
     #     the hash of parameters to be passed to the send_request
     # * authorize (Optional)
     #     boolean value to determine if the call with include an auth_token (Defaults to true)
-    # 
+    #
     def sign_request(options, authorize = true)
       options.merge!(:auth_token => self.auth.token(false).to_s, :api_key => @api_key) if authorize and self.auth.token(false)
       options.delete(:api_sig)
       options.merge!(:api_sig => Digest::MD5.hexdigest(@api_secret + options.to_a.sort_by{|k| k[0].to_s}.flatten.join)) if @api_secret
     end
-    
+
     # creates and/or returns the Flickr::Test object
     def test() @test ||= Flickr::Test.new(self) end
 
     # creates and/or returns the Flickr::Photos object
     def photos() @photos ||= Flickr::Photos.new(self) end
-      
+
     # creates and/or returns the Flickr::Photos object
     def photosets() @photosets ||= Flickr::Photosets.new(self) end
-      
+
     # creates and/or returns the Flickr::People object
     def people() @people ||= Flickr::People.new(self) end
-      
+
     # creates and/or returns the Flickr::Auth object
     def auth() @auth ||= Flickr::Auth.new(self) end
-      
+
     # creates and/or returns the Flickr::Uploader object
     def uploader() @uploader ||= Flickr::Uploader.new(self) end
 
@@ -134,9 +134,9 @@ module Flickr
 
     # creates and/or returns the Flickr::Urls object
     def urls() @urls ||= Flickr::Urls.new(self) end
-            
+
     protected
-    
+
     # For easier testing. You can mock this method with a XML file you're expecting to receive
     def request_over_http(options, http_method, endpoint)
       if http_method == :get
@@ -146,6 +146,6 @@ module Flickr
         Net::HTTP.post_form(URI.parse(endpoint), options).body
       end
     end
-    
+
   end
 end
