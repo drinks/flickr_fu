@@ -48,7 +48,7 @@ class Flickr::Uploader < Flickr::Base
   # * photo (Required)
   #     image stored in a variable
   # * mimetype (Required)
-  #     mime type of the image  
+  #     mime type of the image
   # * options (Optional)
   #     see upload method
   #
@@ -67,7 +67,15 @@ class Flickr::Uploader < Flickr::Base
 
     headers = {"Content-Type" => "multipart/form-data; boundary=" + form.boundary}
 
-    rsp = Net::HTTP.start('api.flickr.com').post("/services/upload/", form.to_s, headers).body
+    request = URI.parse(UPLOAD_ENDPOINT)
+
+    http = Net::HTTP.new(request.host, request.port)
+    http.use_ssl = true
+    http.verify_mode = (OpenSSL::SSL::VERIFY_NONE)
+
+    rsp = http.start do |res|
+      res.post(request.path, form.to_s, headers).body
+    end
 
     xm = XmlMagic.new(rsp)
 
@@ -155,7 +163,7 @@ class Flickr::Uploader::MultiPartForm
   end
 
   def to_s
-    "--#@boundary\r\n" + 
+    "--#@boundary\r\n" +
     parts.map{|p| p.to_s}.join("\r\n--#@boundary\r\n")+
     "\r\n--#@boundary--\r\n"
   end
