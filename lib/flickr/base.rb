@@ -8,7 +8,7 @@ module Flickr
 
     REST_ENDPOINT = 'https://api.flickr.com/services/rest/'
     AUTH_ENDPOINT = 'https://flickr.com/services/auth/'
-    UPLOAD_ENDPOINT = 'https://api.flickr.com/services/upload/'
+    UPLOAD_ENDPOINT = 'https://up.flickr.com/services/upload/'
 
     # create a new flickr object
     #
@@ -97,7 +97,7 @@ module Flickr
       end
     end
 
-    # alters your api parameters to include a signiture and authorization token
+    # alters your api parameters to include a signature and authorization token
     #
     # Params
     # * options (Required)
@@ -108,8 +108,8 @@ module Flickr
     def sign_request(options, authorize = true)
       options.merge!(:auth_token => self.auth.token(false).to_s, :api_key => @api_key) if authorize and self.auth.token(false)
       options.delete(:api_sig)
+      options.merge!(:api_sig => Digest::MD5.hexdigest(@api_secret + options.to_a.sort_by{|k| k[0].to_s}.flatten.join)) if @api_secret
       options
-      # options.merge!(:api_sig => Digest::MD5.hexdigest(@api_secret + options.to_a.sort_by{|k| k[0].to_s}.flatten.join)) if @api_secret
     end
 
     # creates and/or returns the Flickr::Test object
@@ -141,10 +141,17 @@ module Flickr
     # For easier testing. You can mock this method with a XML file you're expecting to receive
     def request_over_http(options, http_method, endpoint)
       if http_method == :get
-        api_call = endpoint + "?" + options.collect{|k,v| "#{k}=#{CGI.escape(v.to_s)}"}.join('&')
-        Net::HTTP.get(URI.parse(api_call))
+        request = URI.parse(endpoint + "?" + options.collect{|k,v| "#{k}=#{CGI.escape(v.to_s)}"}.join('&'))
+        request.read
       else
-        Net::HTTP.post_form(URI.parse(endpoint), options).body
+        # TODO: This was/is rigged for only get/post!?
+        request = URI.parse(endpoint)
+        http = Net::HTTP.new(request.host, request.port)
+        http.use_ssl = true
+        http.verify_mode = (OpenSSL::SSL::VERIFY_NONE)
+        http.start do |res|
+          res.post_form(request, options).body
+        end
       end
     end
 
